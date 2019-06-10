@@ -26,7 +26,7 @@ with tf.Session() as sess:
 	saver = tf.train.Saver()
 	sess.run(tf.global_variables_initializer())
 
-	for i in range(487, 492):
+	for i in range(1000):
 		saver.restore(sess, base_path + "checkpoints/model-" + str(i) + ".ckpt") 
 
 		for j in range(4):

@@ -126,7 +126,7 @@ def saveImages(images, epoch):
 indices = list(range(len(X_train)))
 with tf.Session() as sess:
 
-    saver = tf.train.Saver(max_to_keep=100)
+    saver = tf.train.Saver(max_to_keep=1000)
     sess.run(tf.global_variables_initializer())
     summary_writer = tf.summary.FileWriter(summaries_dir, graph=tf.get_default_graph())
     
