@@ -6,6 +6,7 @@ import cv2
 import matplotlib.image as mpimg
 import pandas as pd
 import os
+import networks
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -39,7 +40,7 @@ def getData(path, value="mel", resize=None):
     return np.array(X)
 
 # Load data
-X1 = getData(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=64)
+X1 = getData(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
 X2 = getData(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
 X_train = np.concatenate((X1, X2), axis=0)
 print(X_train.shape)
@@ -58,80 +59,6 @@ lr = 0.0002
 Z_dim = 100
 mu, sigma = 0, 1
 
-def sample_noise(batch_size, size, mu, sigma):
-    #return np.random.normal(mu, sigma, size=[batch_size, size])
-    return np.random.uniform(-1., 1., size=[batch_size, size])
-
-
-def generator(z, trainable, reuse=False):
-    
-    with tf.variable_scope('generator', reuse=reuse):
-        
-        fc1 = tf.layers.dense(z, 4*4*1024)
-        
-        reshaped = tf.reshape(fc1, (-1, 4, 4, 1024))
-        bn0 = tf.layers.batch_normalization(reshaped, training=trainable)
-        lrelu0 = tf.nn.leaky_relu(bn0)
-        
-        deconv1 = tf.layers.conv2d_transpose(lrelu0, 512, 5, 1, padding='VALID')
-        bn1 = tf.layers.batch_normalization(deconv1, training=trainable)
-        lrelu1 = tf.nn.leaky_relu(bn1)
-        
-        deconv2 = tf.layers.conv2d_transpose(lrelu1, 256, 5, 2, padding='SAME')
-        bn2 = tf.layers.batch_normalization(deconv2, training=trainable)
-        lrelu2 = tf.nn.leaky_relu(bn2)
-        
-        deconv3 = tf.layers.conv2d_transpose(lrelu2, 128, 5, 2, padding='SAME')
-        bn3 = tf.layers.batch_normalization(deconv3, training=trainable)
-        lrelu3 = tf.nn.leaky_relu(bn3)
-        
-        deconv4 = tf.layers.conv2d_transpose(lrelu3, 3, 5, 2, padding='SAME')
-        output = tf.tanh(deconv4)
-        
-        print(z)
-        print(fc1)
-        print(lrelu0)
-        print(lrelu1)
-        print(lrelu2)
-        print(lrelu3)
-        print(output)
-        
-    return output
-    
-
-def discriminator(x, trainable, reuse=False):
-    
-    with tf.variable_scope('discriminator', reuse=reuse):
-        conv1 = tf.layers.conv2d(x, 64, 5, 2, 'SAME')
-        lrelu1 = tf.nn.leaky_relu(conv1)
-
-        conv2 = tf.layers.conv2d(lrelu1, 128, 5, 2, 'SAME')
-        bn2 = tf.layers.batch_normalization(conv2, training=trainable)
-        lrelu2 = tf.nn.leaky_relu(bn2)
-
-        conv3 = tf.layers.conv2d(lrelu2, 256, 5, 2, 'SAME')
-        bn3 = tf.layers.batch_normalization(conv3, training=trainable)
-        lrelu3 = tf.nn.leaky_relu(bn3)
-        
-        conv4 = tf.layers.conv2d(lrelu3, 512, 5, 2, 'SAME')
-        bn4 = tf.layers.batch_normalization(conv4, training=trainable)
-        lrelu4 = tf.nn.leaky_relu(bn4)
-
-        reshaped = tf.reshape(lrelu4, (-1, 4*4*256))
-        logits = tf.layers.dense(reshaped, 1)
-        probability = tf.sigmoid(logits)
-    
-    if not reuse:
-        print(x)
-        print(lrelu1)
-        print(lrelu2)
-        print(lrelu3)
-        print(lrelu4)
-        print(reshaped)
-        print(probability)
-
-    return probability, logits
-
 
 tf.reset_default_graph()
 
@@ -141,9 +68,9 @@ X = tf.placeholder(tf.float32, shape=[None, X_train.shape[1], X_train.shape[2], 
 isTrain = tf.placeholder(dtype=tf.bool)
 
 # Networks
-G_z = generator(Z, isTrain)
-_, D_logits_real = discriminator(X, isTrain)
-_, D_logits_fake = discriminator(G_z, isTrain, reuse=True)
+G_z = networks.generator(Z, isTrain)
+_, D_logits_real = networks.discriminator(X, isTrain)
+_, D_logits_fake = networks.discriminator(G_z, isTrain, reuse=True)
 
 
 def discriminatorLoss(D_logits_real, D_logits_fake, label_smoothing=1):
@@ -188,7 +115,7 @@ merged_summ = tf.summary.merge_all()
 summaries_dir = base_path + "checkpoints"
 
 # Test noise
-testNoise = sample_noise(3, Z_dim, mu, sigma)
+testNoise = networks.sample_noise(3, Z_dim, mu, sigma)
 print(testNoise.shape)
 
 def saveImages(images, epoch):    
@@ -199,7 +126,7 @@ def saveImages(images, epoch):
 indices = list(range(len(X_train)))
 with tf.Session() as sess:
 
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=100)
     sess.run(tf.global_variables_initializer())
     summary_writer = tf.summary.FileWriter(summaries_dir, graph=tf.get_default_graph())
     
@@ -211,13 +138,13 @@ with tf.Session() as sess:
         X_train = X_train[indices]
         
         for j in range(0, len(X_train), batchSize):
-            noise = sample_noise(len(X_train[j:j+batchSize]), Z_dim, mu, sigma)
+            noise = networks.sample_noise(len(X_train[j:j+batchSize]), Z_dim, mu, sigma)
 
             _ = sess.run(D_optimizer, feed_dict={ X: X_train[j:j+batchSize], 
                                                   Z: noise,
                                                   isTrain: True})
 
-            noise = sample_noise(len(X_train[j:j+batchSize]), Z_dim, mu, sigma)
+            noise = networks.sample_noise(len(X_train[j:j+batchSize]), Z_dim, mu, sigma)
             _, summary = sess.run([G_optimizer, merged_summ], feed_dict={ X: X_train[j:j+batchSize],
                                                                           Z: noise,
                                                                           isTrain: True })
@@ -225,7 +152,7 @@ with tf.Session() as sess:
             summary_writer.add_summary(summary, globalStep)
 
         # Check results every epoch
-        save_path = saver.save(sess, base_path + "checkpoints/model.ckpt")
+        save_path = saver.save(sess, base_path + "checkpoints/model-" + str(i) + ".ckpt")
         G_output = sess.run(G_z, feed_dict={ Z: testNoise,
                                             isTrain: False })
         saveImages(G_output, i)
