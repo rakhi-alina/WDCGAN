@@ -21,9 +21,9 @@ def normalize(vector, a, b):
 (X_tmp, Y_train), _ = mnist.load_data()
 X_train = []
 for img in X_tmp:
-    #tmp = cv2.resize(img, (int(64),int(64)), interpolation = cv2.INTER_CUBIC)
-    #X_train.append(tmp)
-    X_train.append(img)
+    tmp = cv2.resize(img, (int(64),int(64)), interpolation = cv2.INTER_CUBIC)
+    X_train.append(tmp)
+    #X_train.append(img)
     
 # Expand to have 1 channel (grey images)
 X_train = np.expand_dims(X_train, axis=-1)
@@ -35,7 +35,7 @@ X_train = normalize(X_train, -1, 1)
 print("Normalized MAX : " + str(X_train.max()) + " and MIN: " + str(X_train.min()))
 
 assert(X_train.shape[1] == X_train.shape[2])
-base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
+base_path = "/scratch/cai/CANCER_GAN/"
 
 # Parameters network and training
 epochs = 1000
@@ -43,7 +43,6 @@ batchSize = 128
 lr = 0.0002
 Z_dim = 100
 mu, sigma = 0, 1
-
 
 def sample_noise(batch_size, size, mu, sigma):
     #return np.random.normal(mu, sigma, size=[batch_size, 1, 1, size])
@@ -54,28 +53,33 @@ def generator(z, trainable, reuse=False):
     
     with tf.variable_scope('generator', reuse=reuse):
         
-        fc1 = tf.layers.dense(z, 2*2*512)
+        fc1 = tf.layers.dense(z, 4*4*1024)
         
-        deconv_2 = tf.reshape(fc1, (-1, 2, 2, 512))
-        bn2 = tf.layers.batch_normalization(deconv_2, training=trainable)
+        reshaped = tf.reshape(fc1, (-1, 4, 4, 1024))
+        bn0 = tf.layers.batch_normalization(reshaped, training=trainable)
+        lrelu0 = tf.nn.leaky_relu(bn0)
+        
+        deconv1 = tf.layers.conv2d_transpose(lrelu0, 512, 5, 1, padding='VALID')
+        bn1 = tf.layers.batch_normalization(deconv1, training=trainable)
+        lrelu1 = tf.nn.leaky_relu(bn1)
+        
+        deconv2 = tf.layers.conv2d_transpose(lrelu1, 256, 5, 2, padding='SAME')
+        bn2 = tf.layers.batch_normalization(deconv2, training=trainable)
         lrelu2 = tf.nn.leaky_relu(bn2)
         
-        deconv3 = tf.layers.conv2d_transpose(lrelu2, 256, 5, 2, padding='VALID')
+        deconv3 = tf.layers.conv2d_transpose(lrelu2, 128, 5, 2, padding='SAME')
         bn3 = tf.layers.batch_normalization(deconv3, training=trainable)
         lrelu3 = tf.nn.leaky_relu(bn3)
         
-        deconv4 = tf.layers.conv2d_transpose(lrelu3, 128, 5, 2, padding='SAME')
-        bn4 = tf.layers.batch_normalization(deconv4, training=trainable)
-        lrelu4 = tf.nn.leaky_relu(bn4)
-        
-        deconv5 = tf.layers.conv2d_transpose(lrelu4, 1, 5, 2, padding='SAME')
-        output = tf.tanh(deconv5)
+        deconv4 = tf.layers.conv2d_transpose(lrelu3, 1, 5, 2, padding='SAME')
+        output = tf.tanh(deconv4)
         
         print(z)
         print(fc1)
+        print(lrelu0)
+        print(lrelu1)
         print(lrelu2)
         print(lrelu3)
-        print(lrelu4)
         print(output)
         
     return output
@@ -91,11 +95,15 @@ def discriminator(x, trainable, reuse=False):
         bn2 = tf.layers.batch_normalization(conv2, training=trainable)
         lrelu2 = tf.nn.leaky_relu(bn2)
 
-        conv3 = tf.layers.conv2d(lrelu2, 256, 5, 1, 'SAME')
+        conv3 = tf.layers.conv2d(lrelu2, 256, 5, 2, 'SAME')
         bn3 = tf.layers.batch_normalization(conv3, training=trainable)
         lrelu3 = tf.nn.leaky_relu(bn3)
+        
+        conv4 = tf.layers.conv2d(lrelu3, 512, 5, 2, 'SAME')
+        bn4 = tf.layers.batch_normalization(conv4, training=trainable)
+        lrelu4 = tf.nn.leaky_relu(bn4)
 
-        reshaped = tf.reshape(lrelu3, (-1, 4*4*256))
+        reshaped = tf.reshape(lrelu4, (-1, 4*4*256))
         logits = tf.layers.dense(reshaped, 1)
         probability = tf.sigmoid(logits)
     
@@ -104,6 +112,7 @@ def discriminator(x, trainable, reuse=False):
         print(lrelu1)
         print(lrelu2)
         print(lrelu3)
+        print(lrelu4)
         print(reshaped)
         print(probability)
 
