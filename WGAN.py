@@ -11,12 +11,11 @@ import networks
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
-#base_path = "/scratch/cai/CANCER_GAN/"
+#base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
+base_path = "/scratch/cai/CANCER_GAN/"
 
 def normalize(vector, a, b, max_val=255, min_val=0):
     assert(a < b)
-
     #result = (b - a) * ( (vector - min_val) / (max_val - min_val) ) + a
     result = (vector - 127.5) / 127.5    
     return result
@@ -91,8 +90,8 @@ with tf.control_dependencies(update_ops):
     D_optimizer = (tf.train.RMSPropOptimizer(learning_rate=lr).minimize(-D_loss, var_list=D_vars))
     G_optimizer = (tf.train.RMSPropOptimizer(learning_rate=lr).minimize(G_loss, var_list=G_vars))
 
-    # clip the weights, so that they fall in [-c, c]
-    clip_updates = [w.assign(tf.clip_by_value(w, -c, c)) for w in D_weights]
+# clip the weights, so that they fall in [-c, c]
+clip_updates = [w.assign(tf.clip_by_value(w, -c, c)) for w in D_weights]
 
 # Summaries | VISUALIZE => tensorboard --logdir=.
 summaries_dir = base_path + "checkpoints"
@@ -105,7 +104,7 @@ def saveImages(images, epoch):
         mpimg.imsave(base_path + "images/out-" + str(epoch) + "-" + str(i) + ".png",  ( (images[i] * 127.5) + 127.5 ).astype(np.uint8) )
 
 
-with tf.Session() as sess:
+with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True))) as sess:
     
     saver = tf.train.Saver(max_to_keep=1000)
     sess.run(tf.global_variables_initializer())
@@ -119,8 +118,8 @@ with tf.Session() as sess:
 
             # Train Discriminator
             for i in range(n_critic_epoch):
+                sess.run(clip_updates)
                 noise = networks.sample_noise(batchSize, Z_dim, mu, sigma)
-                sess.run(clip_updates, feed_dict={ isTrain: True, Z: noise } )
                 sess.run(D_optimizer, feed_dict={ isTrain: True, Z: noise } )
 
             # Train Generator
