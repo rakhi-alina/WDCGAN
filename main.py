@@ -4,29 +4,44 @@ import matplotlib.pyplot as plt
 from keras.datasets import mnist
 import cv2
 import matplotlib.image as mpimg
+import pandas as pd
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"  # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-def normalize(vector, a, b):
+#base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
+base_path = "/scratch/cai/CANCER_GAN/"
+
+def normalize(vector, a, b, max_val=255, min_val=0):
     assert(a < b)
-    max_val = np.max(vector)
-    min_val = np.min(vector)
 
-    result = (b - a) * ( (vector - min_val) / (max_val - min_val) ) + a
-
+    #result = (b - a) * ( (vector - min_val) / (max_val - min_val) ) + a
+    result = (vector - 127.5) / 127.5
+    
     return result
 
-(X_tmp, Y_train), _ = mnist.load_data()
-X_train = []
-for img in X_tmp:
-    tmp = cv2.resize(img, (int(64),int(64)), interpolation = cv2.INTER_CUBIC)
-    X_train.append(tmp)
-    #X_train.append(img)
+
+def getData(path, value="mel", resize=None):
+    DF = pd.read_pickle(path)
+    assert(len(DF["image"]) == len(DF["id"]))
     
-# Expand to have 1 channel (grey images)
-X_train = np.expand_dims(X_train, axis=-1)
+    X = []
+    for i in range(len(DF["image"])):
+        
+        if DF["id"][i] == value:
+            if resize is None:
+                X.append(DF["image"][i])
+            else:
+                tmp = cv2.resize(DF["image"][i], (int(resize),int(resize)), interpolation = cv2.INTER_CUBIC)
+                X.append(tmp)
+                
+    return np.array(X)
+
+# Load data
+X1 = getData(base_path + "data/NvAndMelTrain.pkl", resize=64)
+X2 = getData(base_path + "data/NvAndMelTest.pkl", resize=64)
+X_train = np.concatenate((X1, X2), axis=0)
 print(X_train.shape)
 
 # Print max and min and normalize
@@ -35,7 +50,6 @@ X_train = normalize(X_train, -1, 1)
 print("Normalized MAX : " + str(X_train.max()) + " and MIN: " + str(X_train.min()))
 
 assert(X_train.shape[1] == X_train.shape[2])
-base_path = "/scratch/cai/CANCER_GAN/"
 
 # Parameters network and training
 epochs = 1000
@@ -71,7 +85,7 @@ def generator(z, trainable, reuse=False):
         bn3 = tf.layers.batch_normalization(deconv3, training=trainable)
         lrelu3 = tf.nn.leaky_relu(bn3)
         
-        deconv4 = tf.layers.conv2d_transpose(lrelu3, 1, 5, 2, padding='SAME')
+        deconv4 = tf.layers.conv2d_transpose(lrelu3, 3, 5, 2, padding='SAME')
         output = tf.tanh(deconv4)
         
         print(z)
@@ -179,11 +193,10 @@ print(testNoise.shape)
 
 def saveImages(images, epoch):    
     for i in range(len(images)):
-        mpimg.imsave(base_path + "images/out-" + str(epoch) + "-" + str(i) + ".png", np.squeeze(G_output[i]))
+        mpimg.imsave(base_path + "images/out-" + str(epoch) + "-" + str(i) + ".png",  ( (images[i] * 127.5) + 127.5 ).astype(np.uint8) )
 
 
 indices = list(range(len(X_train)))
-
 with tf.Session() as sess:
 
     saver = tf.train.Saver()
