@@ -40,7 +40,7 @@ def getData(path, value="mel", resize=None):
     return np.array(X)
 
 # Load data
-X1 = getData(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
+X1 = getData(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=64)
 X2 = getData(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
 X_train = np.concatenate((X1, X2), axis=0)
 print(X_train.shape)

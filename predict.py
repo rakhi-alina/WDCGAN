@@ -10,7 +10,6 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 #base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
 base_path = "/scratch/cai/CANCER_GAN/"
 
-
 # Params
 Z_dim = 100
 mu, sigma = 0, 1
