@@ -39,8 +39,8 @@ def getData(path, value="mel", resize=None):
     return np.array(X)
 
 # Load data
-X1 = getData(base_path + "data/NvAndMelTrain.pkl", resize=64)
-X2 = getData(base_path + "data/NvAndMelTest.pkl", resize=64)
+X1 = getData(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=64)
+X2 = getData(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
 X_train = np.concatenate((X1, X2), axis=0)
 print(X_train.shape)
 
@@ -59,7 +59,7 @@ Z_dim = 100
 mu, sigma = 0, 1
 
 def sample_noise(batch_size, size, mu, sigma):
-    #return np.random.normal(mu, sigma, size=[batch_size, 1, 1, size])
+    #return np.random.normal(mu, sigma, size=[batch_size, size])
     return np.random.uniform(-1., 1., size=[batch_size, size])
 
 
@@ -188,7 +188,7 @@ merged_summ = tf.summary.merge_all()
 summaries_dir = base_path + "checkpoints"
 
 # Test noise
-testNoise = sample_noise(6, Z_dim, mu, sigma)
+testNoise = sample_noise(3, Z_dim, mu, sigma)
 print(testNoise.shape)
 
 def saveImages(images, epoch):    
