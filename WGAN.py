@@ -75,25 +75,21 @@ _, D_logits_real = networks.discriminator(X, isTrain)
 _, D_logits_fake = networks.discriminator(G_z, isTrain, reuse=True)
 
 # Losses have minus sign because I have to maximize them
-G_loss = tf.reduce_mean(D_logits_fake)
+G_loss = - tf.reduce_mean(D_logits_fake)
 D_loss = tf.reduce_mean(D_logits_real) - tf.reduce_mean(D_logits_fake)
 
 D_weights = [w for w in tf.global_variables() if 'discriminator' in w.name]
 G_weights = [w for w in tf.global_variables() if 'generator' in w.name]
 
+all_vars = tf.trainable_variables()
+D_vars = [var for var in all_vars if var.name.startswith('discriminator')]
+G_vars = [var for var in all_vars if var.name.startswith('generator')]
+
 # Optimize
 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 with tf.control_dependencies(update_ops): 
-    optimizer_G = tf.train.RMSPropOptimizer(lr)
-    optimizer_D = tf.train.RMSPropOptimizer(lr)
-
-    # get gradients
-    gv_G = optimizer_G.compute_gradients(G_loss, G_weights)
-    gv_D = optimizer_D.compute_gradients(G_loss, D_weights)
-
-    # create training operation
-    G_optimizer = optimizer_G.apply_gradients(gv_G)
-    D_optimizer = optimizer_D.apply_gradients(gv_D)
+    D_optimizer = (tf.train.RMSPropOptimizer(learning_rate=lr).minimize(-D_loss, var_list=D_vars))
+    G_optimizer = (tf.train.RMSPropOptimizer(learning_rate=lr).minimize(G_loss, var_list=G_vars))
 
     # clip the weights, so that they fall in [-c, c]
     clip_updates = [w.assign(tf.clip_by_value(w, -c, c)) for w in D_weights]
@@ -132,7 +128,6 @@ with tf.Session() as sess:
             _, summary = sess.run([G_optimizer, merged_summ], feed_dict={ Z: noise, isTrain: True })
             globalStep += 1
             summary_writer.add_summary(summary, globalStep)
-            print(globalStep)
 
             # Save checkpoints and images
             if globalStep % 100 == 0:
