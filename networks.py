@@ -28,9 +28,13 @@ def generator(z, trainable, reuse=False):
         deconv3 = tf.layers.conv2d_transpose(lrelu2, 128, 5, 2, padding='SAME')
         bn3 = tf.layers.batch_normalization(deconv3, training=trainable)
         lrelu3 = tf.nn.leaky_relu(bn3)
+
+        deconv4 = tf.layers.conv2d_transpose(lrelu3, 64, 5, 2, padding='SAME')
+        bn4 = tf.layers.batch_normalization(deconv4, training=trainable)
+        lrelu4 = tf.nn.leaky_relu(bn4)
         
-        deconv4 = tf.layers.conv2d_transpose(lrelu3, 3, 5, 2, padding='SAME')
-        output = tf.tanh(deconv4)
+        deconv5 = tf.layers.conv2d_transpose(lrelu4, 3, 5, 2, padding='SAME')
+        output = tf.tanh(deconv5)
         
         print(z)
         print(fc1)
@@ -38,6 +42,7 @@ def generator(z, trainable, reuse=False):
         print(lrelu1)
         print(lrelu2)
         print(lrelu3)
+        print(lrelu4)
         print(output)
         
     return output
@@ -61,7 +66,11 @@ def discriminator(x, trainable, reuse=False):
         bn4 = tf.layers.batch_normalization(conv4, training=trainable)
         lrelu4 = tf.nn.leaky_relu(bn4)
 
-        flattened = tf.layers.flatten(lrelu4)
+        conv5 = tf.layers.conv2d(lrelu4, 512, 5, 2, 'SAME')
+        bn5 = tf.layers.batch_normalization(conv5, training=trainable)
+        lrelu5 = tf.nn.leaky_relu(bn5)
+
+        flattened = tf.layers.flatten(lrelu5)
         logits = tf.layers.dense(flattened, 1)
         probability = tf.sigmoid(logits)
     
@@ -71,6 +80,7 @@ def discriminator(x, trainable, reuse=False):
         print(lrelu2)
         print(lrelu3)
         print(lrelu4)
+        print(lrelu5)
         print(flattened)
         print(probability)
 
