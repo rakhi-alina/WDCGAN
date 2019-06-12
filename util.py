@@ -34,9 +34,9 @@ def getDataTumour(path, value="mel", resize=None):
     return np.array(X, dtype=np.float32)
 
 
-def saveImages(images, epoch):    
+def saveImages(filename, images):    
     for i in range(len(images)):
-        mpimg.imsave(base_path + "images/out-" + str(epoch) + "-" + str(i) + ".png",  ( (images[i] * 127.5) + 127.5 ).astype(np.uint8) )
+        mpimg.imsave(filename + "-" + str(i) + ".png",  ( (images[i] * 127.5) + 127.5 ).astype(np.uint8) )
 
 
 def tensorboard(summaries_dir, D_loss, G_loss):

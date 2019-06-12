@@ -68,7 +68,7 @@ with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=Tru
             if globalStep % 100 == 0:
                 save_path = saver.save(sess, base_path + "checkpoints/model-" + str(globalStep) + ".ckpt")
                 G_output = sess.run(G_z, feed_dict={ Z: networks.sample_noise([4, 1, 1, Z_dim], mu, sigma), isTrain: False })
-                util.saveImages(G_output, globalStep)
+                util.saveImages(base_path + "images/out-" + str(globalStep), G_output)
             globalStep += 1
     except tf.errors.OutOfRangeError:
         pass
