@@ -10,7 +10,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 base_path = "/scratch/cai/CANCER_GAN/"
 
 # Parameters
-epochs = 2500
+epochs = 1000
 batchSize = 128
 lr = 0.0002
 beta1 = 0.5
