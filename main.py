@@ -6,8 +6,8 @@ import networks, util, loss
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
-#base_path = "/scratch/cai/CANCER_GAN/"
+#base_path = "/home/francesco/UQ/Job/Tumour_GAN/"
+base_path = "/scratch/cai/CANCER_GAN/"
 
 # Parameters
 epochs = 2500
@@ -18,10 +18,10 @@ Z_dim = 100
 mu, sigma = 0, 1
 
 # Load and normalize data
-#X1 = util.getDataTumour(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=64)
-#X2 = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
-#X_train = np.concatenate((X1, X2), axis=0)
-X_train = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
+X1 = util.getDataTumour(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=64)
+X2 = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
+X_train = np.concatenate((X1, X2), axis=0)
+#X_train = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
 assert(X_train.shape[1] == X_train.shape[2])
 print(X_train.shape)
 X_train = util.normalize(X_train, -1, 1)
