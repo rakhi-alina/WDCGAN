@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import os
-import network, util, loss
+import src.network as network, src.util as util, src.loss as loss
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
