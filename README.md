@@ -1,5 +1,5 @@
 # WDCGAN
-Implementation of a improved (gradient penalty on discriminator/critic loss) Wasserstein Deep Convolutional Generative Adversarial Network for the generation of 64x64 RGB images of melanomas and naevi.
+Implementation of an improved (gradient penalty on discriminator/critic loss) Wasserstein Deep Convolutional Generative Adversarial Network for the generation of 64x64 RGB images of melanomas and naevi.
 
 
 ![DCGAN](https://gluon.mxnet.io/_images/dcgan.png)
