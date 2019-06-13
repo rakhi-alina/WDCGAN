@@ -17,9 +17,8 @@ def GAN_Loss(D_logits_real, D_logits_fake, label_smoothing):
 
 
 def GAN_Optimizer(D_loss, G_loss, lr, beta1):
-    all_vars = tf.trainable_variables()
-    D_vars = [var for var in all_vars if var.name.startswith('discriminator')]
-    G_vars = [var for var in all_vars if var.name.startswith('generator')]
+    D_vars = [var for var in tf.trainable_variables() if var.name.startswith('discriminator')]
+    G_vars = [var for var in tf.trainable_variables() if var.name.startswith('generator')]
 
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)): 
         D_optimizer = tf.train.AdamOptimizer(lr, beta1=beta1).minimize(D_loss, var_list=D_vars)
@@ -28,22 +27,19 @@ def GAN_Optimizer(D_loss, G_loss, lr, beta1):
     return D_optimizer, G_optimizer
 
 
-def WGAN_Loss(D_logits_real, D_logits_fake):
-    D_loss = tf.reduce_mean(D_logits_real) - tf.reduce_mean(D_logits_fake)
+def WGAN_Loss(D_logits_real, D_logits_fake, grad_penalty):
+    D_loss = tf.reduce_mean(D_logits_fake) - tf.reduce_mean(D_logits_real) + grad_penalty
     G_loss = - tf.reduce_mean(D_logits_fake)
 
     return D_loss, G_loss
 
 
-def WGAN_Optimizer(D_loss, G_loss, lr, c):
-    all_vars = tf.trainable_variables()
-    D_vars = [var for var in all_vars if var.name.startswith('discriminator')]
-    G_vars = [var for var in all_vars if var.name.startswith('generator')]
+def WGAN_Optimizer(D_loss, G_loss, lr):
+    D_vars = [var for var in tf.trainable_variables() if var.name.startswith('discriminator')]
+    G_vars = [var for var in tf.trainable_variables() if var.name.startswith('generator')]
 
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-        D_optimizer = tf.train.RMSPropOptimizer(learning_rate=lr).minimize(-D_loss, var_list=D_vars)
-        G_optimizer = tf.train.RMSPropOptimizer(learning_rate=lr).minimize(G_loss, var_list=G_vars)
+        D_optimizer = tf.train.AdamOptimizer(lr, 0.5, 0.9).minimize(D_loss, var_list=D_vars)
+        G_optimizer = tf.train.AdamOptimizer(lr, 0.5, 0.9).minimize(G_loss, var_list=G_vars)
 
-    clip_D = [p.assign(tf.clip_by_value(p, -c, c)) for p in D_vars]
-
-    return D_optimizer, G_optimizer, clip_D
+    return D_optimizer, G_optimizer
