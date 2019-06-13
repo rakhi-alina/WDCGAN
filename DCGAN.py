@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import os
-import networks, util, loss
+import network, util, loss
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -11,8 +11,8 @@ base_path = "/scratch/cai/CANCER_GAN/"
 
 # Parameters
 epochs = 1000
-batchSize = 128
-lr = 0.0002
+batchSize = 256
+lr = 1e-4
 beta1 = 0.5
 Z_dim = 100
 mu, sigma = 0, 1
@@ -28,21 +28,20 @@ X_train = util.normalize(X_train, -1, 1)
 
 # Inputs
 tf.reset_default_graph()
-dataset = tf.data.Dataset.from_tensor_slices(X_train).repeat(epochs).shuffle(buffer_size=10000).batch(batchSize)
+dataset = tf.data.Dataset.from_tensor_slices(X_train).repeat(epochs).shuffle(buffer_size=len(X_train)).batch(batchSize)
 iterator = dataset.make_one_shot_iterator()
 X = iterator.get_next()
-Z = tf.placeholder(tf.float32, shape=[None, 1, 1, Z_dim], name='Z')
+Z = tf.placeholder(tf.float32, shape=[None, Z_dim], name='Z')
 isTrain = tf.placeholder(dtype=tf.bool)
 
 # Networks
-G_z = networks.generator(Z, isTrain)
-_, D_logits_real = networks.discriminator(X, isTrain)
-_, D_logits_fake = networks.discriminator(G_z, isTrain, reuse=True)
+G_z = network.generator(Z, isTrain)
+D_logits_real = network.discriminator(X, isTrain)
+D_logits_fake = network.discriminator(G_z, isTrain, reuse=True)
 
 # Losses and optimizer
-D_loss = loss.discriminatorLoss(D_logits_real, D_logits_fake, 1.0)
-G_loss = loss.generatorLoss(D_logits_fake)
-D_optimizer, G_optimizer = loss.getOptimizers(lr, beta1, D_loss, G_loss)
+D_loss, G_loss = loss.GAN_Loss(D_logits_real, D_logits_fake, 1.0)
+D_optimizer, G_optimizer = loss.GAN_Optimizer(D_loss, G_loss, lr, beta1)
 
 # Tensorboard
 summaries_dir = base_path + "checkpoints"
@@ -54,20 +53,22 @@ with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=Tru
     summary_writer = tf.summary.FileWriter(summaries_dir, graph=tf.get_default_graph())
     
     globalStep = 0
-    noise_shape = [batchSize, 1, 1, Z_dim]
+    noise_shape = [batchSize, Z_dim]
     try: 
         while True:
-            noise = networks.sample_noise(noise_shape, mu, sigma)
+            noise = network.sample_noise(noise_shape, mu, sigma)
             sess.run(D_optimizer, feed_dict={ isTrain: True, Z: noise } )
 
-            noise = networks.sample_noise(noise_shape, mu, sigma)
-            _, summary = sess.run([G_optimizer, merged_summ], feed_dict={ Z: noise, isTrain: True })
-            summary_writer.add_summary(summary, globalStep)
+            if globalStep % 20 == 0:
+                _, summary = sess.run([G_optimizer, merged_summ], feed_dict={ Z: noise, isTrain: True })
+                summary_writer.add_summary(summary, globalStep)
+            else:
+                sess.run(G_optimizer, feed_dict={ Z: noise, isTrain: True })
 
             # Save checkpoints and images
             if globalStep % 100 == 0:
                 save_path = saver.save(sess, base_path + "checkpoints/model-" + str(globalStep) + ".ckpt")
-                G_output = sess.run(G_z, feed_dict={ Z: networks.sample_noise([4, 1, 1, Z_dim], mu, sigma), isTrain: False })
+                G_output = sess.run(G_z, feed_dict={ Z: network.sample_noise([4, Z_dim], mu, sigma), isTrain: False })
                 util.saveImages(base_path + "images/out-" + str(globalStep), G_output)
             globalStep += 1
     except tf.errors.OutOfRangeError:
