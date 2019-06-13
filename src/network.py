@@ -13,9 +13,12 @@ def sample_noise(batch_size, num_dims):
 def generator(z, trainable, reuse=False):
     
     with tf.variable_scope('generator', reuse=reuse):
+        size1, size2, size3 = 4, 4, 1024
+        fc1 = tf.reshape(tf.layers.dense(z, size1*size2*size3, use_bias=False), [-1, size1, size2, size3])
+        lrelu0 = tf.nn.leaky_relu(tf.layers.batch_normalization(fc1, training=trainable))
 
-        fc1 = tf.reshape(tf.layers.dense(z, 4*4*512, use_bias=False), [-1, 4, 4, 512])
-        lrelu1 = tf.nn.leaky_relu(tf.layers.batch_normalization(fc1, training=trainable))
+        deconv1 = tf.layers.conv2d_transpose(lrelu0, 512, 5, 2, padding='SAME', use_bias=False)
+        lrelu1 = tf.nn.leaky_relu(tf.layers.batch_normalization(deconv1, training=trainable))
 
         deconv2 = tf.layers.conv2d_transpose(lrelu1, 256, 5, 2, padding='SAME', use_bias=False)
         lrelu2 = tf.nn.leaky_relu(tf.layers.batch_normalization(deconv2, training=trainable))
@@ -29,6 +32,7 @@ def generator(z, trainable, reuse=False):
         output = tf.tanh(tf.layers.conv2d_transpose(lrelu4, 3, 5, 2, padding='SAME', use_bias=False))
 
         print(z)
+        print(lrelu0)
         print(lrelu1)
         print(lrelu2)
         print(lrelu3)
@@ -45,7 +49,8 @@ def discriminator(x, reuse=False):
         lrelu2 = tf.nn.leaky_relu(tf.layers.conv2d(lrelu1, 128, 5, 2, 'SAME'))
         lrelu3 = tf.nn.leaky_relu(tf.layers.conv2d(lrelu2, 256, 5, 2, 'SAME'))
         lrelu4 = tf.nn.leaky_relu(tf.layers.conv2d(lrelu3, 512, 5, 2, 'SAME'))
-        output = tf.layers.dense(tf.layers.flatten(lrelu4), 1)
+        lrelu5 = tf.nn.leaky_relu(tf.layers.conv2d(lrelu4, 1024, 5, 2, 'SAME'))
+        output = tf.layers.dense(tf.layers.flatten(lrelu5), 1)
     
     if not reuse:
         print(x)
@@ -53,6 +58,7 @@ def discriminator(x, reuse=False):
         print(lrelu2)
         print(lrelu3)
         print(lrelu4)
+        print(lrelu5)
         print(output)
 
     return output

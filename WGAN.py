@@ -19,8 +19,8 @@ num_D = 5
 mu, sigma = 0, 1
 
 # Load and normalize data
-X1 = util.getDataTumour(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=64)
-X2 = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
+X1 = util.getDataTumour(base_path + "data/NvAndMelTrain.pkl", value="nv", resize=128)
+X2 = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=128)
 X_train = np.concatenate((X1, X2), axis=0)
 #X_train = util.getDataTumour(base_path + "data/NvAndMelTest.pkl", value="nv", resize=64)
 assert(X_train.shape[1] == X_train.shape[2])
