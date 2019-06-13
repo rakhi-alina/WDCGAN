@@ -29,10 +29,10 @@ X_train = util.normalize(X_train, -1, 1)
 
 # Inputs
 tf.reset_default_graph()
-batchSizeTensor = tf.placeholder(tf.int32)
 dataset = tf.data.Dataset.from_tensor_slices(X_train).repeat(epochs).shuffle(buffer_size=len(X_train)).batch(batchSize, drop_remainder=True)
 iterator = dataset.make_one_shot_iterator()
 X = iterator.get_next()
+batchSizeTensor = tf.placeholder(tf.int32)
 Z = network.sample_noise(batchSizeTensor, Z_dim)
 isTraining = tf.placeholder(dtype=tf.bool)
 
@@ -65,7 +65,7 @@ with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=Tru
 	try: 
 		while True:
 
-			# Train discriminator
+			# Train discriminator (more at the beginning)
 			D_iterations = 30 if (globalStep < 5 or globalStep % 500 == 0) else num_D
 			for _ in range(D_iterations):
 				sess.run(D_optimizer, feed_dict={ isTraining: True, batchSizeTensor : batchSize })
@@ -75,7 +75,7 @@ with tf.Session(config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=Tru
 
 			# Save summary
 			'''if globalStep % 20 == 0:
-				summary = sess.run(merged_summ, feed_dict={ Z: noise, isTrain: True })
+				summary = sess.run(merged_summ, feed_dict={ isTraining: True, batchSizeTensor : batchSize })
 				summary_writer.add_summary(summary, globalStep)'''
 
 			# Save checkpoints and images
