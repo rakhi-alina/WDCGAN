@@ -38,6 +38,7 @@ def generator(z, trainable, reuse=False):
         print(lrelu3)
         print(lrelu4)
         print(output)
+        print()
    
     return output
 
